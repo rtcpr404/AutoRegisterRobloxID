@@ -1,6 +1,3 @@
-# Let's create the README file with the provided content
-
-readme_content = """
 # Roblox Account Generator
 
 This script automates the creation of Roblox accounts using a headless browser with the `DrissionPage` library. It randomly generates usernames, strong passwords, and handles the sign-up process on the Roblox website. The `.ROBLOSECURITY` cookie and account credentials are stored for later use.
