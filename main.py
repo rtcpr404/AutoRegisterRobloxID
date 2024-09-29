@@ -32,20 +32,6 @@ def generate_username():
     username = ''.join(random.choices(characters, k=length))
     return username
 
-accounts = []
-
-while True:
-    executionCount = input("\nHow many accounts do you want to create?\nDefault value (1)\nAmount: ")
-    if executionCount == "":
-        executionCount = 1
-        break
-    else:
-        try:
-            executionCount = int(executionCount)
-            break
-        except ValueError:
-            print("Invalid number.")
-
 def create_browser():
     try:
         page = ChromiumPage()
@@ -54,16 +40,18 @@ def create_browser():
         print(f"Error creating browser: {e}")
         return None
 
-for x in range(int(executionCount)):
-    page = create_browser()
-    if not page:
-        break
+def create_account(page):
     try:
         page.get("https://www.roblox.com/CreateAccount")
         
         random_month = random.choice(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-        random_day = random.randint(1, 28)
+        days_in_month = {
+            "Jan": 31, "Feb": 28, "Mar": 31, "Apr": 30,
+            "May": 31, "Jun": 30, "Jul": 31, "Aug": 31,
+            "Sep": 30, "Oct": 31, "Nov": 30, "Dec": 31
+        }
         random_year = random.randint(datetime.now().year - 50, datetime.now().year - 13)
+        random_day = random.randint(1, days_in_month[random_month])
 
         time.sleep(random.uniform(0.7, 1))
         page.ele("#MonthDropdown").select.by_value(random_month)
@@ -84,7 +72,7 @@ for x in range(int(executionCount)):
         page.ele("#signup-button").click()
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred during account creation: {e}")
     finally:
         page.wait.url_change("https://www.roblox.com/home", timeout=float('inf'))
         
@@ -98,8 +86,29 @@ for x in range(int(executionCount)):
             with open("cookies.txt", "a") as cookie_file:
                 cookie_file.write(roblosecurity_cookie + "\n")
 
-        accounts.append({"username": username, "password": password})
-        page.quit()
+        return username, password
+
+accounts = []
+
+while True:
+    executionCount = input("\nHow many accounts do you want to create?\nDefault value (1)\nAmount: ")
+    if executionCount == "":
+        executionCount = 1
+        break
+    else:
+        try:
+            executionCount = int(executionCount)
+            break
+        except ValueError:
+            print("Invalid number.")
+
+for x in range(int(executionCount)):
+    page = create_browser()
+    if not page:
+        break
+    username, password = create_account(page)
+    accounts.append({"username": username, "password": password})
+    page.quit()
 
 with open("accounts.txt", "a") as f:
     for account in accounts:
