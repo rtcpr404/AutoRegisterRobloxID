@@ -1,13 +1,11 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 import random
 import string
 import time
 from datetime import datetime
-from DrissionPage import ChromiumPage
-from lib.lib import Main
-
-lib = Main()
-
-print("\nEnsuring Chrome availability...")
+from selenium.webdriver.common.by import By
 
 def generate_password():
     length = random.randint(8, 10)
@@ -34,15 +32,22 @@ def generate_username():
 
 def create_browser():
     try:
-        page = ChromiumPage()
-        return page
+        brave_path = "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"  # ระบุพาธไปยัง Brave
+        chrome_driver_path = "C:/Users/rtcpr/Downloads/aut0s1gnup/lib/chromedriver.exe"  # ระบุพาธไปยัง Chromedriver
+
+        options = Options()
+        options.binary_location = brave_path
+        options.add_argument("--incognito")  # เปิดโหมด private
+        service = Service(executable_path=chrome_driver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        return driver
     except Exception as e:
         print(f"Error creating browser: {e}")
         return None
 
-def create_account(page):
+def create_account(driver):
     try:
-        page.get("https://www.roblox.com/CreateAccount")
+        driver.get("https://www.roblox.com/CreateAccount")
         
         random_month = random.choice(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
         days_in_month = {
@@ -53,31 +58,28 @@ def create_account(page):
         random_year = random.randint(datetime.now().year - 50, datetime.now().year - 13)
         random_day = random.randint(1, days_in_month[random_month])
 
-        time.sleep(random.uniform(0.7, 1))
-        page.ele("#MonthDropdown").select.by_value(random_month)
         time.sleep(random.uniform(0.1, 1))
-        page.ele("#DayDropdown").select.by_value(f"{random_day:02d}")
+        driver.find_element(By.ID, "MonthDropdown").send_keys(random_month)
         time.sleep(random.uniform(0.1, 1))
-        page.ele("#YearDropdown").select.by_value(str(random_year))
+        driver.find_element(By.ID, "DayDropdown").send_keys(f"{random_day:02d}")
+        time.sleep(random.uniform(0.1, 1))
+        driver.find_element(By.ID, "YearDropdown").send_keys(str(random_year))
 
         username = generate_username()
         time.sleep(random.uniform(0.1, 1))
-        page.ele("#signup-username").input(username)
+        driver.find_element(By.ID, "signup-username").send_keys(username)
 
         password = generate_password()
         time.sleep(random.uniform(0.1, 1))
-        page.ele("#signup-password").input(password)
+        driver.find_element(By.ID, "signup-password").send_keys(password)
 
-        time.sleep(random.uniform(0.7, 1))
-        page.ele("#signup-button").click()
+        time.sleep(random.uniform(0.1, 1))
+        driver.find_element(By.ID, "signup-button").click()
 
-    except Exception as e:
-        print(f"An error occurred during account creation: {e}")
-    finally:
-        page.wait.url_change("https://www.roblox.com/home", timeout=float('inf'))
-        
+        time.sleep(5)  # รอให้หน้าเปลี่ยนไปหน้า home
+
         roblosecurity_cookie = None
-        for cookie in page.get_cookies():
+        for cookie in driver.get_cookies():
             if cookie['name'] == '.ROBLOSECURITY':
                 roblosecurity_cookie = cookie['value']
                 break
@@ -88,27 +90,30 @@ def create_account(page):
 
         return username, password
 
+    except Exception as e:
+        print(f"An error occurred during account creation: {e}")
+        return None, None
+
 accounts = []
 
-while True:
-    executionCount = input("\nHow many accounts do you want to create?\nDefault value (1)\nAmount: ")
-    if executionCount == "":
-        executionCount = 1
-        break
-    else:
-        try:
-            executionCount = int(executionCount)
-            break
-        except ValueError:
-            print("Invalid number.")
+execution_count = input("\nHow many accounts do you want to create?\nDefault value (1)\nAmount: ")
+if not execution_count:
+    execution_count = 1
+else:
+    try:
+        execution_count = int(execution_count)
+    except ValueError:
+        print("Invalid number.")
+        execution_count = 1
 
-for x in range(int(executionCount)):
-    page = create_browser()
-    if not page:
+for _ in range(execution_count):
+    driver = create_browser()
+    if not driver:
         break
-    username, password = create_account(page)
-    accounts.append({"username": username, "password": password})
-    page.quit()
+    username, password = create_account(driver)
+    if username and password:
+        accounts.append({"username": username, "password": password})
+    driver.quit()
 
 with open("accounts.txt", "a") as f:
     for account in accounts:
