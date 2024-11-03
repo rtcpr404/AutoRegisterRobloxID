@@ -1,126 +1,190 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+import time
 import random
 import string
-import time
-from datetime import datetime
+import tkinter as tk
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support import expected_conditions as EC
 
-def generate_password():
-    length = random.randint(8, 10)
-    special_characters = string.punctuation.replace('(', '').replace(')', '').replace('{', '').replace('}', '').replace('[', '').replace(']', '')
-    all_characters = string.ascii_lowercase + string.ascii_uppercase + string.digits + special_characters
-    
-    password = [
-        random.choice(string.ascii_uppercase),
-        random.choice(string.digits),
-        random.choice(special_characters)
-    ]
-    
-    special_char_count = random.randint(1, 2)
-    password += random.choices(special_characters, k=special_char_count)
-    password += random.choices(all_characters, k=length - len(password))
-    random.shuffle(password)
-    return ''.join(password)
+window_size = (1000, 1000)
+options = webdriver.ChromeOptions()
+options.add_experimental_option("detach", True)
+options.add_argument(f"--window-size={window_size[0]},{window_size[1]}")
 
-def generate_username():
-    length = random.randint(8, 12)
-    characters = string.ascii_letters + string.digits
-    username = ''.join(random.choices(characters, k=length))
+chromedriver_path = r'webdriver\chromedriver.exe'
+service = Service(chromedriver_path)
+
+def generate_random_username(prefix, length):
+    if length <= len(prefix):
+        raise ValueError("Length should be greater than the length of the prefix.")
+    random_chars = ''.join(random.choices(string.digits, k=length - len(prefix)))
+    username = f"{prefix}{random_chars}"
     return username
 
-def create_browser():
-    try:
-        brave_path = "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"  # ระบุพาธไปยัง Brave
-        chrome_driver_path = "C:/Users/rtcpr/Downloads/aut0s1gnup/lib/chromedriver.exe"  # ระบุพาธไปยัง Chromedriver
+def generate_random_password(length):
+    if length < 8:
+        raise ValueError("Password length should be at least 8 characters.")
+    characters = string.ascii_letters + string.digits
+    password = ''.join(random.choice(characters) for i in range(length))
+    return password
 
-        options = Options()
-        options.binary_location = brave_path
-        options.add_argument("--incognito")  # เปิดโหมด private
-        service = Service(executable_path=chrome_driver_path)
+def save_account_to_file(random_username, random_password):
+    with open("Account.txt", "a") as file:
+        file.write(f"{random_username}:{random_password}\n")
+
+def create_account():
+    num_iterations = int(iterations_entry.get())
+    starting_name = name_entry.get()
+    name_length = int(namelength_entry.get())
+    
+    for _ in range(num_iterations):
         driver = webdriver.Chrome(service=service, options=options)
-        return driver
-    except Exception as e:
-        print(f"Error creating browser: {e}")
-        return None
-
-def create_account(driver):
-    try:
-        driver.get("https://www.roblox.com/CreateAccount")
+        driver.get("https://www.roblox.com/")
+        wait = WebDriverWait(driver, 30)
         
-        random_month = random.choice(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-        days_in_month = {
-            "Jan": 31, "Feb": 28, "Mar": 31, "Apr": 30,
-            "May": 31, "Jun": 30, "Jul": 31, "Aug": 31,
-            "Sep": 30, "Oct": 31, "Nov": 30, "Dec": 31
-        }
-        random_year = random.randint(datetime.now().year - 50, datetime.now().year - 13)
-        random_day = random.randint(1, days_in_month[random_month])
+        try:
+            cooki = driver.find_element(By.XPATH, "//button[@class='btn-secondary-lg cookie-btn btn-primary-md btn-min-width']")
+            cooki.click()
+        except:
+            pass
+        
+        time.sleep(1)
 
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "MonthDropdown").send_keys(random_month)
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "DayDropdown").send_keys(f"{random_day:02d}")
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "YearDropdown").send_keys(str(random_year))
+        # เลือกวันเกิด
+        dropdown = driver.find_element(By.CLASS_NAME, 'rbx-select')
+        dropdown.click()
+        time.sleep(1)
 
-        username = generate_username()
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "signup-username").send_keys(username)
+        option_29 = driver.find_element(By.XPATH, "//option[text()='29']")
+        option_29.click()
 
-        password = generate_password()
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "signup-password").send_keys(password)
+        dropdown = driver.find_element(By.CLASS_NAME, 'rbx-select')
+        dropdown.click()
 
-        time.sleep(random.uniform(0.1, 1))
-        driver.find_element(By.ID, "signup-button").click()
+        option_january = driver.find_element(By.XPATH, "//option[@value='Jan']")
+        option_january.click()
 
-        time.sleep(5)  # รอให้หน้าเปลี่ยนไปหน้า home
+        dropdown = driver.find_element(By.CLASS_NAME, 'rbx-select')
+        dropdown.click()
 
-        roblosecurity_cookie = None
-        for cookie in driver.get_cookies():
-            if cookie['name'] == '.ROBLOSECURITY':
-                roblosecurity_cookie = cookie['value']
+        option_1999 = driver.find_element(By.XPATH, "//option[@value='1999']")
+        option_1999.click()
+
+        # ใส่ชื่อผู้ใช้และรหัสผ่าน
+        username = driver.find_element(By.XPATH, "//*[@id='signup-username']")
+        random_username = generate_random_username(starting_name, name_length)
+        username.send_keys(random_username)
+
+        password = driver.find_element(By.XPATH, "//*[@id='signup-password']")
+        random_password = generate_random_password(12)
+        password.send_keys(random_password)
+
+        # เลือกเพศ
+        selected_function = random.choice([lambda: Gender1(driver), lambda: Gender2(driver)])
+        selected_function()
+
+        try:
+            sign = driver.find_element(By.XPATH, "//*[@id='signup-button']")
+            sign.click()
+        except:
+            num_iterations += 1
+            time.sleep(1)
+            driver.quit()
+            continue
+
+        # ตรวจสอบ Captcha
+        time.sleep(5)
+        while True:
+            try:
+                driver.find_element(By.XPATH, "/html/body/div[9]/div[2]/div/div/div/div")
+                print("[ info ] >>> [ Solve captcha! ]")
+                time.sleep(1)
+            except NoSuchElementException:
+                print("[ info ] >>> [ Captcha solved or no captcha found ]")
                 break
 
-        if roblosecurity_cookie:
-            with open("cookies.txt", "a") as cookie_file:
-                cookie_file.write(roblosecurity_cookie + "\n")
+        time.sleep(5)
+        try:
+            element = driver.find_element(By.XPATH, "//*[@id='header-menu-icon']/button[2]")
+            element.click()
+            
+            # ค้นหาและบันทึก .ROBLOSECURITY cookie
+            roblosecurity_cookie = None
+            for cookie in driver.get_cookies():
+                if cookie['name'] == '.ROBLOSECURITY':
+                    roblosecurity_cookie = cookie['value']
+                    break
 
-        return username, password
+            if roblosecurity_cookie:
+                with open("cookies.txt", "a") as cookie_file:
+                    cookie_file.write(roblosecurity_cookie + "\n")
 
-    except Exception as e:
-        print(f"An error occurred during account creation: {e}")
-        return None, None
+            save_account_to_file(random_username, random_password)
+            driver.quit()
+        except:
+            num_iterations += 1
+            time.sleep(1)
+            driver.quit()
+            continue
+    result_label.config(text="Finished creating accounts")
 
-accounts = []
+def Gender1(driver):
+    Gender = driver.find_element(By.XPATH, "//*[@id='MaleButton']")
+    Gender.click()
 
-execution_count = input("\nHow many accounts do you want to create?\nDefault value (1)\nAmount: ")
-if not execution_count:
-    execution_count = 1
-else:
-    try:
-        execution_count = int(execution_count)
-    except ValueError:
-        print("Invalid number.")
-        execution_count = 1
+def Gender2(driver):
+    Gender2 = driver.find_element(By.XPATH, "//*[@id='FemaleButton']")
+    Gender2.click()
 
-for _ in range(execution_count):
-    driver = create_browser()
-    if not driver:
-        break
-    username, password = create_account(driver)
-    if username and password:
-        accounts.append({"username": username, "password": password})
-    driver.quit()
+# GUI
+root = tk.Tk()
+root.title("roblox account creator selenium")
+root.geometry("300x250")
+root.resizable(False, False)
 
-with open("accounts.txt", "a") as f:
-    for account in accounts:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        f.write(f"Username: {account['username']}, Password: {account['password']} (Created at {timestamp})\n")
+# Entry widgets for Iterations
+iterations_frame = tk.Frame(root)
+iterations_frame.pack(pady=10)
 
-print("\nAll accounts have been created. Accounts' details:\n")
-for account in accounts:
-    print(f"Username: {account['username']}, Password: {account['password']}")
-print("\nSaved to the file accounts.txt and Cookies file Cookies.txt.")
+iterations_label = tk.Label(iterations_frame, text="Number of Account :")
+iterations_label.grid(row=0, column=0, padx=5, pady=5)
+
+iterations_entry = tk.Entry(iterations_frame)
+iterations_entry.grid(row=0, column=1, padx=5, pady=5)
+
+# Entry widgets for Starting Name
+name_frame = tk.Frame(root)
+name_frame.pack(pady=10)
+
+name_label = tk.Label(name_frame, text="Starting name:")
+name_label.grid(row=0, column=0, padx=5, pady=5)
+
+name_entry = tk.Entry(name_frame)
+name_entry.grid(row=0, column=1, padx=5, pady=5)
+
+# Entry widgets for Name Length
+length_frame = tk.Frame(root)
+length_frame.pack(pady=10)
+
+namelength_label = tk.Label(length_frame, text="Name length:")
+namelength_label.grid(row=0, column=0, padx=5, pady=5)
+
+namelength_entry = tk.Entry(length_frame)
+namelength_entry.grid(row=0, column=1, padx=5, pady=5)
+
+# Create Accounts Button
+create_button = tk.Button(root, text="Create Accounts", command=create_account)
+create_button.pack(pady=10)
+
+# Label for Edition Fork
+edition_label = tk.Label(root, text="@D4ag Hater")
+edition_label.pack()
+
+# Result Label
+result_label = tk.Label(root, text="")
+result_label.pack(pady=10)
+
+root.mainloop()
